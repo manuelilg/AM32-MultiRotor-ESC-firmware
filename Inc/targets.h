@@ -1318,6 +1318,10 @@
 
 #ifdef HARDWARE_GROUP_F031_C
 
+// Modified Hardware 1 (failed attempt to create 3 DSHOT input)
+// PA5 is used for Phase W/3 BEMF instead of PB1 (also because of ripped pad TP6)
+// PB1 (TIM14_CH1, TIM3_CH4) is unused
+
 #define    MCU_F031
 #define    INTERVAL_TIMER        TIM2
 #define    EXTI_TYPE_BAC
@@ -1350,7 +1354,7 @@
 #define PHASE_C_GPIO_PORT_HIGH   GPIOA
 #define PHASE_C_GPIO_HIGH        LL_GPIO_PIN_8
 
-// Phase W/3
+// Phase W/3 BEMF
 #define PHASE_A_EXTI_PORT        GPIOA
 #define PHASE_A_EXTI_PIN         LL_GPIO_PIN_5
 #define PHASE_A_EXTI_LINE        EXTI_IMR_MR5_Pos
@@ -1358,7 +1362,7 @@
 #define SYSCFG_EXTI_PORTA        LL_SYSCFG_EXTI_PORTA
 #define SYSCFG_EXTI_LINEA        LL_SYSCFG_EXTI_LINE5
 
-// Phase V/2
+// Phase V/2 BEMF
 #define PHASE_B_EXTI_PORT        GPIOF
 #define PHASE_B_EXTI_PIN         LL_GPIO_PIN_0
 #define PHASE_B_EXTI_LINE        EXTI_IMR_MR0_Pos
@@ -1366,7 +1370,7 @@
 #define SYSCFG_EXTI_PORTB        LL_SYSCFG_EXTI_PORTF
 #define SYSCFG_EXTI_LINEB        LL_SYSCFG_EXTI_LINE0
 
-// Phase U/1
+// Phase U/1 BEMF
 #define PHASE_C_EXTI_PORT        GPIOF
 #define PHASE_C_EXTI_PIN         LL_GPIO_PIN_1
 #define PHASE_C_EXTI_LINE        EXTI_IMR_MR1_Pos
