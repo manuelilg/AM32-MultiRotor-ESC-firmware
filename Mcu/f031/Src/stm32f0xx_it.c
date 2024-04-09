@@ -48,6 +48,9 @@
 extern void sendDshotDma(void);
 extern void receiveDshotDma(void);
 extern void transfercomplete(void);
+extern void transfercompleteInput1(void);
+extern void transfercompleteInput2(void);
+extern void transfercompleteInput3(void);
 extern void interruptRoutine();
 extern void PeriodElapsedCallback();
 extern void tenKhzRoutine();
@@ -228,6 +231,17 @@ void DMA1_Channel2_3_IRQHandler(void) {
 	/* USER CODE END DMA1_Channel2_3_IRQn 0 */
 
 	/* USER CODE BEGIN DMA1_Channel2_3_IRQn 1 */
+#if defined(USE_ADDITIONAL_INPUTS)
+	if(LL_DMA_IsActiveFlag_TC3(DMA1) == 1) {
+		LL_DMA_ClearFlag_GI3(DMA1);
+		LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_3);
+		transfercompleteInput2();
+	}
+	else if(LL_DMA_IsActiveFlag_TE3(DMA1) == 1) {
+		LL_DMA_ClearFlag_GI3(DMA1);
+		//LL_GPIO_SetOutputPin(GPIOB, LL_GPIO_PIN_7);
+	}
+#endif
 	/* USER CODE END DMA1_Channel2_3_IRQn 1 */
 }
 
@@ -276,26 +290,39 @@ void DMA1_Channel4_5_IRQHandler(void) {
 #endif
 
 #ifdef USE_TIMER_2_CHANNEL_1
-		if(LL_DMA_IsActiveFlag_HT5(DMA1)){
-			if(servoPwm){
+	if(LL_DMA_IsActiveFlag_HT5(DMA1)) {
+		if(servoPwm) {
 			LL_TIM_IC_SetPolarity(IC_TIMER_REGISTER, IC_TIMER_CHANNEL, LL_TIM_IC_POLARITY_FALLING);
-			 LL_DMA_ClearFlag_HT5(DMA1);
-			}
+			LL_DMA_ClearFlag_HT5(DMA1);
 		}
-		if(LL_DMA_IsActiveFlag_TC5(DMA1) == 1)
-		{
-			LL_DMA_ClearFlag_GI5(DMA1);
+	}
 
-			LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_5);
+#if defined(USE_ADDITIONAL_INPUTS)
+	if(LL_DMA_IsActiveFlag_TC4(DMA1) == 1) {
+		LL_DMA_ClearFlag_GI4(DMA1);
+		LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_4);
+		transfercompleteInput3();
+	}
+	else if(LL_DMA_IsActiveFlag_TE4(DMA1) == 1) {
+		LL_DMA_ClearFlag_GI4(DMA1);
+		//LL_GPIO_SetOutputPin(GPIOB, LL_GPIO_PIN_7);
+	}
+#endif
 
+	if(LL_DMA_IsActiveFlag_TC5(DMA1) == 1) {
+		LL_DMA_ClearFlag_GI5(DMA1);
+		LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_5);
+#if defined(USE_ADDITIONAL_INPUTS)
+		transfercompleteInput1();
+#else
+		transfercomplete();
+#endif
+	}
+	else if(LL_DMA_IsActiveFlag_TE5(DMA1) == 1) {
+		LL_DMA_ClearFlag_GI5(DMA1);
+		//LL_GPIO_SetOutputPin(GPIOB, LL_GPIO_PIN_7);
+	}
 
-			transfercomplete();
-
-		  }
-		  else if(LL_DMA_IsActiveFlag_TE5(DMA1) == 1)
-		  {
-			  LL_DMA_ClearFlag_GI5(DMA1);
-		  }
 #endif
 
 #ifdef USE_TIMER_3_CHANNEL_1
@@ -410,7 +437,7 @@ void TIM16_IRQHandler(void)
   */
 void EXTI0_1_IRQHandler(void) {
 // check if one of the phases exti line is in the range from 0 to 1
-#if IS_IN_RANGE(PHASE_A_LL_EXTI_LINE, LL_EXTI_LINE_0, LL_EXTI_LINE_1)|| IS_IN_RANGE(PHASE_B_LL_EXTI_LINE, LL_EXTI_LINE_0, LL_EXTI_LINE_1) || IS_IN_RANGE(PHASE_C_LL_EXTI_LINE, LL_EXTI_LINE_0, LL_EXTI_LINE_1)
+#if IS_IN_RANGE(PHASE_A_LL_EXTI_LINE, LL_EXTI_LINE_0, LL_EXTI_LINE_1) || IS_IN_RANGE(PHASE_B_LL_EXTI_LINE, LL_EXTI_LINE_0, LL_EXTI_LINE_1) || IS_IN_RANGE(PHASE_C_LL_EXTI_LINE, LL_EXTI_LINE_0, LL_EXTI_LINE_1)
 	const uint32_t exitLines =
   #if IS_IN_RANGE(PHASE_A_LL_EXTI_LINE, LL_EXTI_LINE_0, LL_EXTI_LINE_1)
 		PHASE_A_LL_EXTI_LINE |
@@ -435,7 +462,7 @@ void EXTI0_1_IRQHandler(void) {
   */
 void EXTI2_3_IRQHandler(void) {
 // check if one of the phases exti line is in the range from 2 to 3
-#if IS_IN_RANGE(PHASE_A_LL_EXTI_LINE, LL_EXTI_LINE_2, LL_EXTI_LINE_3)|| IS_IN_RANGE(PHASE_B_LL_EXTI_LINE, LL_EXTI_LINE_2, LL_EXTI_LINE_3) || IS_IN_RANGE(PHASE_C_LL_EXTI_LINE, LL_EXTI_LINE_2, LL_EXTI_LINE_3)
+#if IS_IN_RANGE(PHASE_A_LL_EXTI_LINE, LL_EXTI_LINE_2, LL_EXTI_LINE_3) || IS_IN_RANGE(PHASE_B_LL_EXTI_LINE, LL_EXTI_LINE_2, LL_EXTI_LINE_3) || IS_IN_RANGE(PHASE_C_LL_EXTI_LINE, LL_EXTI_LINE_2, LL_EXTI_LINE_3)
 	const uint32_t exitLines =
   #if IS_IN_RANGE(PHASE_A_LL_EXTI_LINE, LL_EXTI_LINE_2, LL_EXTI_LINE_3)
 		PHASE_A_LL_EXTI_LINE |
@@ -460,7 +487,7 @@ void EXTI2_3_IRQHandler(void) {
   */
 void EXTI4_15_IRQHandler(void) {
 // check if one of the phases exti line is in the range from 4 to 15
-#if IS_IN_RANGE(PHASE_A_LL_EXTI_LINE, LL_EXTI_LINE_4, LL_EXTI_LINE_15)|| IS_IN_RANGE(PHASE_B_LL_EXTI_LINE, LL_EXTI_LINE_4, LL_EXTI_LINE_15) || IS_IN_RANGE(PHASE_C_LL_EXTI_LINE, LL_EXTI_LINE_4, LL_EXTI_LINE_15)
+#if IS_IN_RANGE(PHASE_A_LL_EXTI_LINE, LL_EXTI_LINE_4, LL_EXTI_LINE_15) || IS_IN_RANGE(PHASE_B_LL_EXTI_LINE, LL_EXTI_LINE_4, LL_EXTI_LINE_15) || IS_IN_RANGE(PHASE_C_LL_EXTI_LINE, LL_EXTI_LINE_4, LL_EXTI_LINE_15)
 	const uint32_t exitLines =
   #if IS_IN_RANGE(PHASE_A_LL_EXTI_LINE, LL_EXTI_LINE_4, LL_EXTI_LINE_15)
 		PHASE_A_LL_EXTI_LINE |

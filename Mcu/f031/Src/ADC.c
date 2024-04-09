@@ -47,8 +47,8 @@ void enableADC_DMA(){    // enables channel
 	NVIC_SetPriority(DMA1_Channel1_IRQn, 3);
 	NVIC_EnableIRQ(DMA1_Channel1_IRQn);
 #else // ADC_DMA_CHANNEL == LL_DMA_CHANNEL_2
-	NVIC_SetPriority(DMA1_Channel2_3_IRQn,, 3);
-	NVIC_EnableIRQ(DMA1_Channel2_3_IRQn,);
+	NVIC_SetPriority(DMA1_Channel2_3_IRQn, 3);
+	NVIC_EnableIRQ(DMA1_Channel2_3_IRQn);
 #endif
 
 	LL_DMA_ConfigAddresses(DMA1,

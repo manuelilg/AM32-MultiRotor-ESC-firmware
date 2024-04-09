@@ -171,6 +171,10 @@ if(dshot_telemetry){
 
 		if (dshot == 1){
 			computeDshotDMA();
+#if defined(USE_ADDITIONAL_INPUTS)
+			computeDshot2();
+			computeDshot3();
+#endif
 			if(send_telemetry){
             // done in 10khz routine
 			}
@@ -214,3 +218,44 @@ if(!armed){
 	}
 	}
 }
+
+#if defined(USE_ADDITIONAL_INPUTS)
+uint8_t input1Complete = 0;
+uint8_t input2Complete = 0;
+uint8_t input3Complete = 0;
+
+void transfercompleteInput1(void) {
+	if ((input2Complete == 1) && (input3Complete == 1)) {
+		//while (input3Complete == 0) {}
+		input2Complete = 0;
+		input3Complete = 0;
+		transfercomplete();
+	}
+	else {
+		input1Complete = 1;
+	}
+}
+
+void transfercompleteInput2(void) {
+	if ((input1Complete == 1) && (input3Complete == 1)) {
+//		while (input3Complete == 0) {}
+		input1Complete = 0;
+		input3Complete = 0;
+		transfercomplete();
+	}
+	else {
+		input2Complete = 1;
+	}
+}
+
+void transfercompleteInput3(void) {
+	if ((input1Complete == 1) && (input2Complete == 1)) {
+		input1Complete = 0;
+		input2Complete = 0;
+		transfercomplete();
+	}
+	else {
+		input3Complete = 1;
+	}
+}
+#endif

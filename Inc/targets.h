@@ -499,15 +499,27 @@
 #define    CURRENT_OFFSET					175
 #define    TARGET_STALL_PROTECTION_INTERVAL	8000
 
+
 #define INVERTED_COMPARATOR_OUTPUT
+
+//#undef USE_RGB_LED
+//#define LED_RED_PORT	GPIOA
+//#define LED_RED_PIN		LL_GPIO_PIN_0
+//#define LED_GREEN_PORT	GPIOA
+//#define LED_GREEN_PIN	LL_GPIO_PIN_1
+//#define LED_BLUE_PORT	GPIOA
+//#define LED_BLUE_PIN	LL_GPIO_PIN_2
 
 #define USE_RGB_LED
 #define LED_RED_PORT	GPIOA
 #define LED_RED_PIN		LL_GPIO_PIN_0
 #define LED_GREEN_PORT	GPIOA
-#define LED_GREEN_PIN	LL_GPIO_PIN_1
+#define LED_GREEN_PIN	LL_GPIO_PIN_6
 #define LED_BLUE_PORT	GPIOA
-#define LED_BLUE_PIN	LL_GPIO_PIN_2
+#define LED_BLUE_PIN	LL_GPIO_PIN_7
+
+#define USE_ADDITIONAL_INPUTS
+#define CHANGE_INPUT_TIMER
 
 #endif
 
@@ -1319,10 +1331,25 @@
 #ifdef HARDWARE_GROUP_F031_C
 
 #define    MCU_F031
-#define    INTERVAL_TIMER        TIM2
-#define    EXTI_TYPE_BAC
-#define    USE_TIMER_3_CHANNEL_1
 
+#if defined(CHANGE_INPUT_TIMER)
+#define    INTERVAL_TIMER        TIM3
+#define USE_TIMER_2_CHANNEL_1
+#else
+#define    INTERVAL_TIMER        TIM2
+#define    USE_TIMER_3_CHANNEL_1
+#endif
+
+#define    EXTI_TYPE_BAC
+
+#if defined(CHANGE_INPUT_TIMER)
+#define INPUT_PIN                LL_GPIO_PIN_5
+#define INPUT_PIN_PORT           GPIOA
+#define IC_TIMER_CHANNEL         LL_TIM_CHANNEL_CH1
+#define IC_TIMER_REGISTER        TIM2
+#define INPUT_DMA_CHANNEL        LL_DMA_CHANNEL_5
+#define IC_DMA_IRQ_NAME          DMA1_Channel4_5_IRQn
+#else
 #define INPUT_PIN                LL_GPIO_PIN_6
 #define INPUT_PIN_PORT           GPIOA
 #define IC_TIMER_CHANNEL         LL_TIM_CHANNEL_CH1
@@ -1331,6 +1358,8 @@
 #define INPUT_DMA_CHANNEL        LL_DMA_CHANNEL_4
 #define DMA_HANDLE_TYPE_DEF      hdma_tim3_ch1
 #define IC_DMA_IRQ_NAME          DMA1_Channel4_5_IRQn
+#endif
+
 
 // Phase W/3 (LSW/LS3, HSW/HS3) TIM1_CH3
 #define PHASE_A_GPIO_PORT_LOW    GPIOB
@@ -1379,6 +1408,7 @@
 #define EXTI_IRQC_NAME           EXTI0_1_IRQn
 
 #define ADC_DMA_CHANNEL          LL_DMA_CHANNEL_1
+//#define ADC_DMA_CHANNEL          LL_DMA_CHANNEL_2
 
 #define VOLTAGE_SENSE_ADC_PIN    LL_GPIO_PIN_3
 #define VOLTAGE_ADC_CHANNEL      LL_ADC_CHANNEL_3
@@ -1488,7 +1518,7 @@
 #define APPLICATION_ADDRESS 0x08001000
 #define TARGET_MIN_BEMF_COUNTS 3
 //#define USE_SERIAL_TELEMETRY // moved to individual ESCs
-#define USE_ADC
+//#define USE_ADC
 #endif
 
 #ifdef MCU_G071

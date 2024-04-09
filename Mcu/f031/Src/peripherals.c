@@ -242,7 +242,7 @@ void MX_TIM1_Init(void) {
 }
 
 void MX_TIM_Interval_Init(void) {
-	// INTERVAL_TIMER
+	// INTERVAL_TIMER 2 Khz ?
 	LL_TIM_InitTypeDef TIM_InitStruct = {0};
 	if (INTERVAL_TIMER == TIM2) {
 	  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM2);
@@ -324,6 +324,10 @@ void TEN_KHZ_Timer_Init() {
 	  NVIC_SetPriority(TIM2_IRQn, 2);
 	  NVIC_EnableIRQ(TIM2_IRQn);
 #else
+	  // Timer for tenKhzRoutine
+	  // 48MHz / (47 + 1) = 1MHz, 1Mhz / 100 = 10 kHz
+	  // Possibe New config for 12Mhz clock frequency to use TIM16_CH1 as additional DSHOT300 input -> does not work with STeval
+	  // 48MHz / (3 + 1) = 12MHz, 12Mhz / 1200 = 10 kHz
 	  LL_TIM_InitTypeDef TIM_InitStruct = {0};
 	  /* Peripheral clock enable */
 	  LL_APB1_GRP2_EnableClock(LL_APB1_GRP2_PERIPH_TIM16);
@@ -370,6 +374,19 @@ void UN_TIM_Init(void) {
 	GPIO_InitStruct.Alternate = LL_GPIO_AF_2;
 	LL_GPIO_Init(INPUT_PIN_PORT, &GPIO_InitStruct);
 
+#elif defined(USE_TIMER_2_CHANNEL_1)
+
+	LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM2);
+	LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOA);
+
+	GPIO_InitStruct.Pin = INPUT_PIN;
+	GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+	GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_HIGH;
+	GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+	GPIO_InitStruct.Pull = LL_GPIO_PULL_UP;
+	GPIO_InitStruct.Alternate = LL_GPIO_AF_2;
+	LL_GPIO_Init(INPUT_PIN_PORT, &GPIO_InitStruct);
+
 #elif defined(USE_TIMER_3_CHANNEL_1)
 
 	LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM3);
@@ -387,13 +404,14 @@ void UN_TIM_Init(void) {
 
 	/* TIM Input DMA Init */
 	LL_DMA_SetDataTransferDirection(DMA1, INPUT_DMA_CHANNEL, LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
-	LL_DMA_SetChannelPriorityLevel(DMA1, INPUT_DMA_CHANNEL, LL_DMA_PRIORITY_LOW);
+	//LL_DMA_SetChannelPriorityLevel(DMA1, INPUT_DMA_CHANNEL, LL_DMA_PRIORITY_LOW);
+	LL_DMA_SetChannelPriorityLevel(DMA1, INPUT_DMA_CHANNEL, LL_DMA_PRIORITY_MEDIUM);
 	LL_DMA_SetMode(DMA1, INPUT_DMA_CHANNEL, LL_DMA_MODE_NORMAL);
 	LL_DMA_SetPeriphIncMode(DMA1, INPUT_DMA_CHANNEL, LL_DMA_PERIPH_NOINCREMENT);
 	LL_DMA_SetMemoryIncMode(DMA1, INPUT_DMA_CHANNEL, LL_DMA_MEMORY_INCREMENT);
 	LL_DMA_SetPeriphSize(DMA1, INPUT_DMA_CHANNEL, LL_DMA_PDATAALIGN_HALFWORD);
-	LL_DMA_SetMemorySize(DMA1, INPUT_DMA_CHANNEL, LL_DMA_MDATAALIGN_WORD);
-
+	//LL_DMA_SetMemorySize(DMA1, INPUT_DMA_CHANNEL, LL_DMA_MDATAALIGN_WORD);
+	LL_DMA_SetMemorySize(DMA1, INPUT_DMA_CHANNEL, LL_DMA_MDATAALIGN_HALFWORD);
 
 #ifdef USE_TIMER_3_CHANNEL_1
 	NVIC_SetPriority(IC_DMA_IRQ_NAME, 1);
@@ -411,6 +429,64 @@ void UN_TIM_Init(void) {
 	LL_TIM_IC_SetPrescaler(IC_TIMER_REGISTER, IC_TIMER_CHANNEL, LL_TIM_ICPSC_DIV1);
 	LL_TIM_IC_SetFilter(IC_TIMER_REGISTER, IC_TIMER_CHANNEL, LL_TIM_IC_FILTER_FDIV1);
 	LL_TIM_IC_SetPolarity(IC_TIMER_REGISTER, IC_TIMER_CHANNEL, LL_TIM_IC_POLARITY_BOTHEDGE);
+
+	// Example Dshot 300 ic_timer_prescaler=3 -> 48MHz / 4 = 12MHz
+
+	// DSHOT input roll PA1, TIM2_CH2 -> TI2 -> IC2 -> CC2, DMA Channel3
+#if defined(USE_ADDITIONAL_INPUTS)
+	GPIO_InitStruct.Pin = LL_GPIO_PIN_1;
+	GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+	GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_HIGH;
+	GPIO_InitStruct.Pull = LL_GPIO_PULL_UP;
+	GPIO_InitStruct.Alternate = LL_GPIO_AF_2;
+	LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+	LL_DMA_SetDataTransferDirection(DMA1, LL_DMA_CHANNEL_3, LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
+	LL_DMA_SetChannelPriorityLevel(DMA1, LL_DMA_CHANNEL_3, LL_DMA_PRIORITY_HIGH);
+	LL_DMA_SetMode(DMA1, LL_DMA_CHANNEL_3, LL_DMA_MODE_NORMAL);
+	LL_DMA_SetPeriphIncMode(DMA1, LL_DMA_CHANNEL_3, LL_DMA_PERIPH_NOINCREMENT);
+	LL_DMA_SetMemoryIncMode(DMA1, LL_DMA_CHANNEL_3, LL_DMA_MEMORY_INCREMENT);
+	LL_DMA_SetPeriphSize(DMA1, LL_DMA_CHANNEL_3, LL_DMA_PDATAALIGN_HALFWORD);
+	LL_DMA_SetMemorySize(DMA1, LL_DMA_CHANNEL_3, LL_DMA_MDATAALIGN_HALFWORD);
+
+	NVIC_SetPriority(DMA1_Channel2_3_IRQn, 1);
+	NVIC_EnableIRQ(DMA1_Channel2_3_IRQn);
+
+	LL_TIM_IC_SetActiveInput(IC_TIMER_REGISTER, LL_TIM_CHANNEL_CH2, LL_TIM_ACTIVEINPUT_DIRECTTI);
+	LL_TIM_IC_SetPrescaler(IC_TIMER_REGISTER, LL_TIM_CHANNEL_CH2, LL_TIM_ICPSC_DIV1);
+	LL_TIM_IC_SetFilter(IC_TIMER_REGISTER, LL_TIM_CHANNEL_CH2, LL_TIM_IC_FILTER_FDIV1);
+	LL_TIM_IC_SetPolarity(TIM3, LL_TIM_CHANNEL_CH2, LL_TIM_IC_POLARITY_BOTHEDGE);
+	//LL_TIM_IC_SetPolarity(IC_TIMER_REGISTER, LL_TIM_CHANNEL_CH2, LL_TIM_IC_POLARITY_FALLING);
+
+	//NVIC_SetPriority(TIM3_IRQn, 1);
+	//NVIC_EnableIRQ(TIM3_IRQn);
+	//LL_TIM_EnableIT_CC2(TIM3);
+
+	// DSHOT input pitch PA2, TIM2_CH3 -> TI3 -> IC4 (IC4 is mapped on TI3 !!!) -> CC4, DMA Channel 4
+	GPIO_InitStruct.Pin = LL_GPIO_PIN_2;
+	GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+	GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_HIGH;
+	GPIO_InitStruct.Pull = LL_GPIO_PULL_UP;
+	GPIO_InitStruct.Alternate = LL_GPIO_AF_2;
+	LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+	LL_DMA_SetDataTransferDirection(DMA1, LL_DMA_CHANNEL_4, LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
+	LL_DMA_SetChannelPriorityLevel(DMA1, LL_DMA_CHANNEL_4, LL_DMA_PRIORITY_HIGH);
+	LL_DMA_SetMode(DMA1, LL_DMA_CHANNEL_4, LL_DMA_MODE_NORMAL);
+	LL_DMA_SetPeriphIncMode(DMA1, LL_DMA_CHANNEL_4, LL_DMA_PERIPH_NOINCREMENT);
+	LL_DMA_SetMemoryIncMode(DMA1, LL_DMA_CHANNEL_4, LL_DMA_MEMORY_INCREMENT);
+	LL_DMA_SetPeriphSize(DMA1, LL_DMA_CHANNEL_4, LL_DMA_PDATAALIGN_HALFWORD);
+	LL_DMA_SetMemorySize(DMA1, LL_DMA_CHANNEL_4, LL_DMA_MDATAALIGN_HALFWORD);
+
+	// already configured by TIM2_CH1
+	//NVIC_SetPriority(DMA1_Channel4_5_IRQn, 1);
+	//NVIC_EnableIRQ(DMA1_Channel4_5_IRQn);
+
+	LL_TIM_IC_SetFilter(IC_TIMER_REGISTER, LL_TIM_CHANNEL_CH3, LL_TIM_IC_FILTER_FDIV1);
+	LL_TIM_IC_SetPolarity(IC_TIMER_REGISTER, LL_TIM_CHANNEL_CH3, LL_TIM_IC_POLARITY_BOTHEDGE);
+	LL_TIM_IC_SetActiveInput(IC_TIMER_REGISTER, LL_TIM_CHANNEL_CH4, LL_TIM_ACTIVEINPUT_INDIRECTTI);
+	LL_TIM_IC_SetPrescaler(IC_TIMER_REGISTER, LL_TIM_CHANNEL_CH4, LL_TIM_ICPSC_DIV1);
+#endif
 }
 
 void UN_GPIO_Init(void) {
@@ -515,6 +591,45 @@ void UN_GPIO_Init(void) {
 	LL_GPIO_Init(HALL_C_PORT, &GPIO_InitStruct);
 #endif
 
+	// PB6 -> additional DSHOT input with EXTI (TIM16_CH1N can not be used as IC)
+//	GPIO_InitStruct.Pin = LL_GPIO_PIN_6;
+//	GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
+//	GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+//	LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+//
+//	EXTI_InitStruct.Line_0_31 = LL_EXTI_LINE_6;
+//	EXTI_InitStruct.LineCommand = ENABLE;
+//	EXTI_InitStruct.Mode = LL_EXTI_MODE_IT;
+//	EXTI_InitStruct.Trigger = LL_EXTI_TRIGGER_RISING;
+//	LL_EXTI_Init(&EXTI_InitStruct);
+//
+//	LL_EXTI_DisableIT_0_31(LL_EXTI_LINE_6);
+//
+//	LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTB, LL_SYSCFG_EXTI_LINE6);
+
+//	NVIC_SetPriority(EXTI4_15_IRQn, 0);
+//	NVIC_EnableIRQ(EXTI4_15_IRQn);
+
+
+	// PB6 and PB7 debug output
+	GPIO_InitStruct.Pin = LL_GPIO_PIN_6;
+	GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+	GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_HIGH;
+	GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+	LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+	GPIO_InitStruct.Pin = LL_GPIO_PIN_7;
+	GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+	GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_HIGH;
+	GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+	LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+	// PA15: 0 deg input (edge low is the mark)
+	GPIO_InitStruct.Pin = LL_GPIO_PIN_15;
+	GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
+	//GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+	GPIO_InitStruct.Pull = LL_GPIO_PULL_UP;
+	LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 }
 
 #ifdef USE_RGB_LED

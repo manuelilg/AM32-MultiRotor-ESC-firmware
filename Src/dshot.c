@@ -11,7 +11,9 @@
 #include "common.h"
 #include "sounds.h"
 
-int dpulse[16] = {0} ;
+//int dpulse[16] = {0} ;
+uint16_t dpulse[16] = {0} ;
+uint16_t dpulse2[16] = {0} ;
 
 const char gcr_encode_table[16] = { 0b11001,
 		0b11011,
@@ -52,17 +54,108 @@ uint16_t dshot_badcounts;
 char dshot_extended_telemetry = 0;
 uint16_t send_extended_dshot = 0;
 
+//uint8_t inputBuffer[1024] = {0};
+//uint32_t inputBufferIndex = 0;
 
-void computeDshotDMA(){
+
+#if defined(USE_ADDITIONAL_INPUTS)
+
+void computeDshot2(void) {
+	dshot_frametime = dma_buffer2[31]- dma_buffer2[0];
+	if((dshot_frametime < 1350 ) &&(dshot_frametime > 1150)) {
+		for (int i = 0; i < 16; i++){
+			dpulse2[i] = ((dma_buffer2[(i<<1) +1] - dma_buffer2[(i<<1)])>>5) ;
+		}
+
+		const uint8_t calcCRC = ((dpulse2[0]^dpulse2[4]^dpulse2[8])<<3
+								 |(dpulse2[1]^dpulse2[5]^dpulse2[9])<<2
+								 |(dpulse2[2]^dpulse2[6]^dpulse2[10])<<1
+								 |(dpulse2[3]^dpulse2[7]^dpulse2[11])
+		);
+		const uint8_t checkCRC = (dpulse2[12]<<3 | dpulse2[13]<<2 | dpulse2[14]<<1 | dpulse2[15]);
+
+		const int tocheck = (
+			dpulse2[0]<<10 | dpulse2[1]<<9 | dpulse2[2]<<8 | dpulse2[3]<<7
+			| dpulse2[4]<<6 | dpulse2[5]<<5 | dpulse2[6]<<4 | dpulse2[7]<<3
+			| dpulse2[8]<<2 | dpulse2[9]<<1 | dpulse2[10]);
+
+		if(calcCRC == checkCRC) {
+			if (tocheck > 47) {
+				if (EDT_ARMED) {
+					newinput2 = tocheck;
+
+					//LL_GPIO_SetOutputPin(LED_BLUE_PORT, LED_BLUE_PIN);
+//					if (tocheck > 1047) {
+//						LL_GPIO_ResetOutputPin(LED_BLUE_PORT, LED_BLUE_PIN);
+//					}
+//					else {
+//						LL_GPIO_SetOutputPin(LED_BLUE_PORT, LED_BLUE_PIN);
+//					}
+				}
+			}
+		}
+		else {
+			//LL_GPIO_ResetOutputPin(LED_BLUE_PORT, LED_BLUE_PIN);
+		}
+	}
+}
+
+void computeDshot3(void) {
+//	for (int i = 0; i < 32; i += 2) {
+//		dma_buffer3[i] = dma_buffer[i];
+//		//dma_buffer3[i+1] -= 21U;
+//	}
+
+	dshot_frametime = dma_buffer3[31]- dma_buffer3[0];
+	if((dshot_frametime < 1350 ) &&(dshot_frametime > 1150)) {
+		for (int i = 0; i < 16; i++){
+			dpulse2[i] = ((dma_buffer3[(i<<1) +1] - dma_buffer3[(i<<1)])>>5) ;
+		}
+
+		const uint8_t calcCRC = ((dpulse2[0]^dpulse2[4]^dpulse2[8])<<3
+						   |(dpulse2[1]^dpulse2[5]^dpulse2[9])<<2
+						   |(dpulse2[2]^dpulse2[6]^dpulse2[10])<<1
+						   |(dpulse2[3]^dpulse2[7]^dpulse2[11])
+		);
+		const uint8_t checkCRC = (dpulse2[12]<<3 | dpulse2[13]<<2 | dpulse2[14]<<1 | dpulse2[15]);
+
+		const int tocheck = (
+			dpulse2[0]<<10 | dpulse2[1]<<9 | dpulse2[2]<<8 | dpulse2[3]<<7
+			| dpulse2[4]<<6 | dpulse2[5]<<5 | dpulse2[6]<<4 | dpulse2[7]<<3
+			| dpulse2[8]<<2 | dpulse2[9]<<1 | dpulse2[10]);
+
+#if defined(USE_RGB_LED)
+		if(calcCRC == checkCRC) {
+			if (tocheck > 47) {
+				if (EDT_ARMED) {
+					newinput3 = tocheck;
+
+					//LL_GPIO_SetOutputPin(LED_BLUE_PORT, LED_BLUE_PIN);
+//					if (tocheck > 1047) {
+//						LL_GPIO_ResetOutputPin(LED_BLUE_PORT, LED_BLUE_PIN);
+//					}
+//					else {
+//						LL_GPIO_SetOutputPin(LED_BLUE_PORT, LED_BLUE_PIN);
+//					}
+				}
+			}
+		}
+		else {
+			//LL_GPIO_ResetOutputPin(LED_BLUE_PORT, LED_BLUE_PIN);
+		}
+#endif
+	}
+}
+#endif
 
 
-int j = 0;
-dshot_frametime = dma_buffer[31]- dma_buffer[0];
+void computeDshotDMA(void) {
+	dshot_frametime = dma_buffer[31]- dma_buffer[0];
 
 #if defined(MCU_F051) || defined(MCU_F031)
-	         if((dshot_frametime < 1350 ) &&(dshot_frametime > 1150)){
+	         if((dshot_frametime < 1350 ) &&(dshot_frametime > 1150)) {
 				for (int i = 0; i < 16; i++){
-					dpulse[i] = ((dma_buffer[j + (i<<1) +1] - dma_buffer[j + (i<<1)])>>5) ;
+					dpulse[i] = ((dma_buffer[(i<<1) +1] - dma_buffer[(i<<1)])>>5);
 				}
 #endif
 #if defined(MCU_G071) || defined(MCU_GD32)
@@ -207,11 +300,13 @@ dshot_frametime = dma_buffer[31]- dma_buffer[0];
 				}
 
 		}
+		else {
+			LL_GPIO_ResetOutputPin(LED_BLUE_PORT, LED_BLUE_PIN);
+			//LL_GPIO_SetOutputPin(GPIOB, LL_GPIO_PIN_7);
+		}
 }
 
-
-
-void make_dshot_package(){
+void make_dshot_package(void){
 if(send_extended_dshot > 0){
   dshot_full_number = send_extended_dshot;
   send_extended_dshot = 0;

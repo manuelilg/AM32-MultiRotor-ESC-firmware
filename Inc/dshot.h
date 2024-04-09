@@ -15,7 +15,9 @@
 
 
 void computeDshotDMA(void);
-void make_dshot_package();
+void computeDshot2(void);
+void computeDshot3(void);
+void make_dshot_package(void);
 
 
 extern char EDT_ARM_ENABLE;

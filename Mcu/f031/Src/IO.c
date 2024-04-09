@@ -15,12 +15,20 @@ char ic_timer_prescaler = 10;
 char output_timer_prescaler;
 int buffersize = 32;
 int smallestnumber = 20000;
-uint32_t dma_buffer[64];
+//uint32_t dma_buffer[64];
+uint16_t dma_buffer[64];
+uint16_t dma_buffer2[32] = {0};
+uint16_t dma_buffer3[32] = {0}; // is not filled by a DMA but by software in a EXTI interrupt
+uint32_t buffer3_index = 0;
 char out_put = 0;
 char buffer_divider = 44;
 int dshot_runout_timer = 62500;
 uint32_t average_signal_pulse;
 uint8_t buffer_padding = 7;
+
+extern uint8_t input1Complete;
+extern uint8_t input2Complete;
+extern uint8_t input3Complete;
 
 void changeToOutput(){
 	LL_DMA_SetDataTransferDirection(DMA1, INPUT_DMA_CHANNEL, LL_DMA_DIRECTION_MEMORY_TO_PERIPH);
@@ -93,15 +101,27 @@ void changeToInput(){
 #ifdef USE_TIMER_2_CHANNEL_1
 	LL_APB1_GRP1_ForceReset(LL_APB1_GRP1_PERIPH_TIM2);           // de-init timer 2
 	LL_APB1_GRP1_ReleaseReset(LL_APB1_GRP1_PERIPH_TIM2);
-	IC_TIMER_REGISTER->CCMR1 = 0x1;
-	IC_TIMER_REGISTER->CCER = 0xa;
+	IC_TIMER_REGISTER->CCMR1 |= (LL_TIM_ACTIVEINPUT_DIRECTTI >> 16); // IC_TIMER_REGISTER->CCMR1 = 0x1; -> set TIM_CCMR1_CC1S_0
+	IC_TIMER_REGISTER->CCER |= LL_TIM_IC_POLARITY_BOTHEDGE; //IC_TIMER_REGISTER->CCER = 0xa;
+
+#if defined(USE_ADDITIONAL_INPUTS)
+	// TIM2 CH2 -> CC2
+	IC_TIMER_REGISTER->CCMR1 |= TIM_CCMR1_CC2S_0;
+	IC_TIMER_REGISTER->CCER |= (TIM_CCER_CC2P | TIM_CCER_CC2NP);
+
+	// TIM2 CH3 -> CC4
+	IC_TIMER_REGISTER->CCER |= (TIM_CCER_CC3P | TIM_CCER_CC3NP); // LL_TIM_IC_POLARITY_BOTHEDGE
+	IC_TIMER_REGISTER->CCER |= (TIM_CCER_CC4P | TIM_CCER_CC4NP); // LL_TIM_IC_POLARITY_BOTHEDGE
+	IC_TIMER_REGISTER->CCMR2 |= TIM_CCMR2_CC4S_1; // LL_TIM_ACTIVEINPUT_INDIRECTTI
+#endif
 #endif
 #ifdef USE_TIMER_3_CHANNEL_1
 	LL_APB1_GRP1_ForceReset(LL_APB1_GRP1_PERIPH_TIM3);
 	LL_APB1_GRP1_ReleaseReset(LL_APB1_GRP1_PERIPH_TIM3);
-	IC_TIMER_REGISTER->CCMR1 = 0x1;
-	IC_TIMER_REGISTER->CCER = 0xa;
+	IC_TIMER_REGISTER->CCMR1 |= (LL_TIM_ACTIVEINPUT_DIRECTTI >> 16); // set TIM_CCMR1_CC1S_0;
+	IC_TIMER_REGISTER->CCER |= LL_TIM_IC_POLARITY_BOTHEDGE;
 #endif
+
 	IC_TIMER_REGISTER->PSC = ic_timer_prescaler;
 	IC_TIMER_REGISTER->ARR = 0xFFFF;
 	LL_TIM_GenerateEvent_UPDATE(IC_TIMER_REGISTER);
@@ -174,6 +194,10 @@ void receiveDshotDma(){
 #endif
 #ifdef USE_TIMER_2_CHANNEL_1
 	LL_DMA_ConfigAddresses(DMA1, INPUT_DMA_CHANNEL, (uint32_t)&IC_TIMER_REGISTER->CCR1, (uint32_t)&dma_buffer, LL_DMA_GetDataTransferDirection(DMA1, INPUT_DMA_CHANNEL));
+#if defined(USE_ADDITIONAL_INPUTS)
+	LL_DMA_ConfigAddresses(DMA1, LL_DMA_CHANNEL_3, (uint32_t)&IC_TIMER_REGISTER->CCR2, (uint32_t)&dma_buffer2, LL_DMA_GetDataTransferDirection(DMA1, INPUT_DMA_CHANNEL));
+	LL_DMA_ConfigAddresses(DMA1, LL_DMA_CHANNEL_4, (uint32_t)&IC_TIMER_REGISTER->CCR4, (uint32_t)&dma_buffer3, LL_DMA_GetDataTransferDirection(DMA1, INPUT_DMA_CHANNEL));
+#endif
 #endif
 #ifdef USE_TIMER_3_CHANNEL_1
 	LL_DMA_ConfigAddresses(DMA1, INPUT_DMA_CHANNEL, (uint32_t)&IC_TIMER_REGISTER->CCR1, (uint32_t)&dma_buffer, LL_DMA_GetDataTransferDirection(DMA1, INPUT_DMA_CHANNEL));
@@ -182,6 +206,18 @@ void receiveDshotDma(){
 	LL_DMA_EnableIT_TC(DMA1, INPUT_DMA_CHANNEL);
 	LL_DMA_EnableIT_TE(DMA1, INPUT_DMA_CHANNEL);
 	LL_DMA_EnableChannel(DMA1, INPUT_DMA_CHANNEL);
+
+#if defined(USE_ADDITIONAL_INPUTS)
+	LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_3, buffersize);
+	LL_DMA_EnableIT_TC(DMA1, LL_DMA_CHANNEL_3);
+	LL_DMA_EnableIT_TE(DMA1, LL_DMA_CHANNEL_3);
+	LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_3);
+
+	LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_4, buffersize);
+	LL_DMA_EnableIT_TC(DMA1, LL_DMA_CHANNEL_4);
+	LL_DMA_EnableIT_TE(DMA1, LL_DMA_CHANNEL_4);
+	LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_4);
+#endif
 #ifdef USE_TIMER_2_CHANNEL_4
 	LL_TIM_EnableDMAReq_CC4(IC_TIMER_REGISTER);
 	LL_TIM_EnableDMAReq_CC4(IC_TIMER_REGISTER);
@@ -200,15 +236,27 @@ void receiveDshotDma(){
 #ifdef USE_TIMER_2_CHANNEL_1
 	LL_TIM_EnableDMAReq_CC1(IC_TIMER_REGISTER);
 	LL_TIM_EnableDMAReq_CC1(IC_TIMER_REGISTER);
+#if defined(USE_ADDITIONAL_INPUTS)
+	LL_TIM_EnableDMAReq_CC2(IC_TIMER_REGISTER);
+	LL_TIM_EnableDMAReq_CC2(IC_TIMER_REGISTER);
+
+	LL_TIM_EnableDMAReq_CC4(IC_TIMER_REGISTER);
+	LL_TIM_EnableDMAReq_CC4(IC_TIMER_REGISTER);
+#endif
 #endif
 #ifdef USE_TIMER_3_CHANNEL_1
 	LL_TIM_EnableDMAReq_CC1(IC_TIMER_REGISTER);
 	LL_TIM_EnableDMAReq_CC1(IC_TIMER_REGISTER);
 #endif
+
 	LL_TIM_CC_EnableChannel(IC_TIMER_REGISTER, IC_TIMER_CHANNEL);
+#if defined(USE_ADDITIONAL_INPUTS)
+	LL_TIM_CC_EnableChannel(IC_TIMER_REGISTER, LL_TIM_CHANNEL_CH2);
+	LL_TIM_CC_EnableChannel(IC_TIMER_REGISTER, LL_TIM_CHANNEL_CH4);
+#endif
+
 	LL_TIM_EnableCounter(IC_TIMER_REGISTER);
 	//TIM16->PSC = 1;
-
 }
 
 
