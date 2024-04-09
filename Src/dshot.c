@@ -131,12 +131,14 @@ void computeDshot3(void) {
 					newinput3 = tocheck;
 
 					//LL_GPIO_SetOutputPin(LED_BLUE_PORT, LED_BLUE_PIN);
-//					if (tocheck > 1047) {
-//						LL_GPIO_ResetOutputPin(LED_BLUE_PORT, LED_BLUE_PIN);
-//					}
-//					else {
-//						LL_GPIO_SetOutputPin(LED_BLUE_PORT, LED_BLUE_PIN);
-//					}
+					/* #### MILG test input  ####
+					if (tocheck > 1047) {
+						LL_GPIO_ResetOutputPin(LED_BLUE_PORT, LED_BLUE_PIN);
+					}
+					else {
+						LL_GPIO_SetOutputPin(LED_BLUE_PORT, LED_BLUE_PIN);
+					}
+					//*/
 				}
 			}
 		}

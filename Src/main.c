@@ -290,10 +290,17 @@ char USE_HALL_SENSOR = 0;
 uint16_t enter_sine_angle = 180;
 char do_once_sinemode= 0;
 //============================= Servo Settings ==============================
+#if defined(ONE_SHOT_125)
+uint16_t servo_low_threshold = 1100/8;	// anything below this point considered 0
+uint16_t servo_high_threshold = 1900/8;	// anything above this point considered 2000 (max)
+uint16_t servo_neutral = 1500/8;
+uint8_t servo_dead_band = 100/8;
+#else
 uint16_t servo_low_threshold = 1100;	// anything below this point considered 0
 uint16_t servo_high_threshold = 1900;	// anything above this point considered 2000 (max)
 uint16_t servo_neutral = 1500;
 uint8_t servo_dead_band = 100;
+#endif
 
 //========================= Battery Cuttoff Settings ========================
 char LOW_VOLTAGE_CUTOFF = 0;		// Turn Low Voltage CUTOFF on or off
@@ -936,40 +943,48 @@ void PeriodElapsedCallback(){
 			zero_crosses++;
 			}
 
-			// MILG
-			if (0) {
+#if defined(USE_VIRTUAL_PITCH)
 			//if (zero_crosses > 100) {
-				//++zeroDegCrossesCount;
-				//LL_GPIO_TogglePin(GPIOB, LL_GPIO_PIN_6);
-				if (++zeroDegCrossesCount >= zeroDegCrossesPerRevolution) {
-					zeroDegCrossesCount = 0;
-					//LL_GPIO_SetOutputPin(GPIOB, LL_GPIO_PIN_6);
-				}
-
-				if (searchZeroDegLocation != 0 && LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_15) == 0) {
-					if (zeroDegFound) {
-						if (zeroDegCrossesCount != 0) {
-#if defined(USE_RGB_LED)
-							// turn on red
-							//LL_GPIO_ResetOutputPin(LED_RED_PORT, LED_RED_PIN);
-							//LL_GPIO_SetOutputPin(LED_GREEN_PORT, LED_GREEN_PIN);
-							//LL_GPIO_SetOutputPin(LED_BLUE_PORT, LED_BLUE_PIN);
-#endif
-						}
-					}
-
-					zeroDegCrossesCount = 0;
-					//LL_GPIO_SetOutputPin(GPIOB, LL_GPIO_PIN_6);
-
-					zeroDegFound = 1;
-					searchZeroDegLocation = 0;
-				}
-
-				if (zeroDegCrossesCount == (zeroDegCrossesPerRevolution / 2)) {
-					searchZeroDegLocation = 1;
-					//LL_GPIO_ResetOutputPin(GPIOB, LL_GPIO_PIN_6);
-				}
+			//++zerocrosses_count;
+			//LL_GPIO_TogglePin(GPIOB, LL_GPIO_PIN_6);
+			if (++zerocrosses_count >= zerocrosses_per_revolution) {
+				zerocrosses_count = 0;
+				LL_GPIO_SetOutputPin(GPIOB, LL_GPIO_PIN_6);
 			}
+
+			if (search_0deg_location != 0 && old_routine == 0 && LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_15) == 0) {
+				if (zero_deg_found) {
+					if (zerocrosses_count != 0) {
+#if defined(USE_RGB_LED)
+						// turn on red
+						//LL_GPIO_ResetOutputPin(LED_RED_PORT, LED_RED_PIN);
+						//LL_GPIO_SetOutputPin(LED_GREEN_PORT, LED_GREEN_PIN);
+						//LL_GPIO_SetOutputPin(LED_BLUE_PORT, LED_BLUE_PIN);
+#endif
+					}
+				}
+
+				zerocrosses_count = 0;
+				//LL_GPIO_SetOutputPin(GPIOB, LL_GPIO_PIN_6);
+
+				zero_deg_found = 1;
+				search_0deg_location = 0;
+			}
+
+			if (zerocrosses_count == (zerocrosses_per_revolution/2)) {
+				//search_0deg_location = 1;
+				LL_GPIO_ResetOutputPin(GPIOB, LL_GPIO_PIN_6);
+			}
+
+			if (LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_15) == 0) {
+				// turn on blue
+				LL_GPIO_ResetOutputPin(LED_BLUE_PORT, LED_BLUE_PIN);
+			}
+			else {
+				// turn off blue
+				LL_GPIO_SetOutputPin(LED_BLUE_PORT, LED_BLUE_PIN);
+			}
+#endif
 }
 
 
@@ -1468,10 +1483,11 @@ void zcfoundroutine(){   // only used in polling mode, blocking routine.
     	 }
     }else{
     	if(zero_crosses > 30){
-    	old_routine = 0;
-    	enableCompInterrupts();          // enable interrupt
+		  // Successful startup
+    	  old_routine = 0;
+    	  enableCompInterrupts();          // enable interrupt
 
-    }
+      }
     }
 
 }
@@ -2027,9 +2043,28 @@ if(newinput > 2000){
   						}
 					    }
   					}else{
-
-  						input = adjusted_input;
-
+#if defined(USE_VIRTUAL_PITCH)
+						if (zero_deg_found) {
+							const uint32_t angle = (zerocrosses_count * 360U + (zerocrosses_per_revolution/2U))  / zerocrosses_per_revolution;
+							//const uint32_t modified_angle = (angle + 90U) > 360U ? angle - 270U : angle + 90U ;
+							const int32_t sinValue = pwmSin[angle]; // sin-value between 0 - 360
+							// adjusted_input has range from 47 to 2047
+							//uint32_t roll = (newinput2 - 47U + (2000U/2U)) / 2000U ;
+							// TODO signed integer division rounding for
+							// +/- 130   *   0 - 2000   *   0 - 2000   /   2000   /   130   =   +/- 0 - 2000 ( proportional to adjusted_input)
+							const int32_t modulation = (sinValue - 130) * (int32_t)(adjusted_input - 48U) * (int32_t)(newinput2 - 48U /*+ (2000U/2U)*/) / 2000 / 130;
+							input = adjusted_input + modulation;
+							//LL_GPIO_TogglePin(GPIOB, LL_GPIO_PIN_7);
+							LL_GPIO_SetOutputPin(GPIOB, LL_GPIO_PIN_7);
+						}
+						else {
+							input = adjusted_input;
+							//LL_GPIO_TogglePin(GPIOB, LL_GPIO_PIN_7);
+							LL_GPIO_ResetOutputPin(GPIOB, LL_GPIO_PIN_7);
+						}
+#else
+						input = adjusted_input;
+#endif
   					}
   				}
 #endif
@@ -2095,6 +2130,7 @@ if (old_routine && running){
 
 	 		  maskPhaseInterrupts();
 	 		  old_routine = 1;
+			  search_0deg_location = 1;
 	 		  if(input < 48){
 	 		   running = 0;
 	 		  }

@@ -262,7 +262,7 @@ void receiveDshotDma(){
 
 void checkDshot(){
 	if ((smallestnumber > 1)&&(smallestnumber < 4)&& (average_signal_pulse < 50)) {
-		ic_timer_prescaler= 1;
+		ic_timer_prescaler= 0;
 		output_timer_prescaler=0;
 		dshot = 1;
 		buffer_divider = 44;
@@ -272,7 +272,7 @@ void checkDshot(){
 	}
 	if ((smallestnumber >= 4 )&&(smallestnumber < 8)&& (average_signal_pulse < 50)){
 		dshot = 1;
-		ic_timer_prescaler=3;
+		ic_timer_prescaler=1;
 		output_timer_prescaler=1;
 		IC_TIMER_REGISTER->CNT = 0xffff;
 		buffer_divider = 44;
@@ -285,7 +285,11 @@ void checkDshot(){
 void checkServo(){
 	if (smallestnumber > 300 && smallestnumber < 20000){
 		servoPwm = 1;
+#if defined(ONE_SHOT_125)
+		ic_timer_prescaler=43; // 8 times faster
+#else
 		ic_timer_prescaler=47;
+#endif
 		armed_count_threshold = 35;
 		buffersize = 2;
 		inputSet = 1;

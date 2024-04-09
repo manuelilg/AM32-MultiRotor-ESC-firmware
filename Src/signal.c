@@ -43,8 +43,11 @@ void computeMSInput(){
 
 
 void computeServoInput(){
-
-		if(((dma_buffer[1] - dma_buffer[0]) >800 ) && ((dma_buffer[1] - dma_buffer[0]) < 2200)){
+#if defined(ONE_SHOT_125)
+	if(((dma_buffer[1] - dma_buffer[0]) > (800/8) ) && ((dma_buffer[1] - dma_buffer[0]) < (2200/8))){
+#else
+	if(((dma_buffer[1] - dma_buffer[0]) > 800) && ((dma_buffer[1] - dma_buffer[0]) < 2200)){
+#endif
 		if(calibration_required){
 			if(!high_calibration_set){
 			if(high_calibration_counts == 0){

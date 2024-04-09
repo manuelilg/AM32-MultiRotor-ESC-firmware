@@ -490,7 +490,7 @@
 #ifdef STEVAL_ESC002V1
 #define    FILE_NAME						"STEVAL_ESC002V1"
 #define    FIRMWARE_NAME					"ESC002V1    "
-#define    DEAD_TIME						45
+#define    DEAD_TIME						20
 // uses the STSPIN32F0A
 #define    HARDWARE_GROUP_F031_C
 #define    TARGET_VOLTAGE_DIVIDER			152
@@ -518,8 +518,13 @@
 #define LED_BLUE_PORT	GPIOA
 #define LED_BLUE_PIN	LL_GPIO_PIN_7
 
-#define USE_ADDITIONAL_INPUTS
 #define CHANGE_INPUT_TIMER
+//#define USE_ADDITIONAL_INPUTS
+#if defined(USE_ADDITIONAL_INPUTS)
+#define USE_VIRTUAL_PITCH
+#endif
+
+//#define ONE_SHOT_125
 
 #endif
 
