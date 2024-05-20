@@ -174,7 +174,7 @@ if(dshot_telemetry){
 
 		if (dshot == 1){
 			computeDshotDMA();
-#if defined(USE_ADDITIONAL_INPUTS)
+#if defined(USE_ADDITIONAL_INPUTS) && defined(ADDITIONAL_INPUTS_DSHOT)
 			computeDshot2();
 			computeDshot3();
 #endif
@@ -228,6 +228,7 @@ uint8_t input2Complete = 0;
 uint8_t input3Complete = 0;
 
 void transfercompleteInput1(void) {
+#if defined(ADDITIONAL_INPUTS_DSHOT)
 	if ((input2Complete == 1) && (input3Complete == 1)) {
 		//while (input3Complete == 0) {}
 		input2Complete = 0;
@@ -237,9 +238,13 @@ void transfercompleteInput1(void) {
 	else {
 		input1Complete = 1;
 	}
+#elif defined(ADDITIONAL_INPUTS_ONE_SHOT_125)
+	transfercomplete();
+#endif
 }
 
 void transfercompleteInput2(void) {
+#if defined(ADDITIONAL_INPUTS_DSHOT)
 	if ((input1Complete == 1) && (input3Complete == 1)) {
 //		while (input3Complete == 0) {}
 		input1Complete = 0;
@@ -249,9 +254,14 @@ void transfercompleteInput2(void) {
 	else {
 		input2Complete = 1;
 	}
+#elif defined(ADDITIONAL_INPUTS_ONE_SHOT_125)
+	computeServoInput2();
+	receiveServoInput2();
+#endif
 }
 
 void transfercompleteInput3(void) {
+#if defined(ADDITIONAL_INPUTS_DSHOT)
 	if ((input1Complete == 1) && (input2Complete == 1)) {
 		input1Complete = 0;
 		input2Complete = 0;

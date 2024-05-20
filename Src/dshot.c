@@ -303,7 +303,7 @@ void computeDshotDMA(void) {
 
 		}
 		else {
-			LL_GPIO_ResetOutputPin(LED_BLUE_PORT, LED_BLUE_PIN);
+//			LL_GPIO_ResetOutputPin(LED_BLUE_PORT, LED_BLUE_PIN);
 			//LL_GPIO_SetOutputPin(GPIOB, LL_GPIO_PIN_7);
 		}
 }

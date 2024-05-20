@@ -13,11 +13,11 @@
 
 #include "main.h"
 
-void changeToOutput();
-void changeToInput();
-void receiveDshotDma();
-void sendDshotDma();
-void detectInput();
+void changeToOutput(void);
+void changeToInput(void);
+void receiveDshotDma(void);
+void sendDshotDma(void);
+void detectInput(void);
 
 extern char bi_direction;
 extern char inputSet;
