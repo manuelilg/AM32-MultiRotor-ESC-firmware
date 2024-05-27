@@ -280,6 +280,7 @@ uint8_t zeroDegCrossesPerRevolution = 3 * motorPoles; // 2 steps are one zerocro
 uint8_t zeroDegCrossesCount = 0;
 uint8_t searchZeroDegLocation = 1;
 uint8_t zeroDegFound = 0;
+#endif
 #if defined(USE_USART_TX)
 uint8_t txBuffer[3] = {};
 #endif
@@ -2071,6 +2072,28 @@ if(newinput > 2000){
 							input = adjusted_input + modulation;
 							//LL_GPIO_TogglePin(GPIOB, LL_GPIO_PIN_7);
 //							LL_GPIO_SetOutputPin(GPIOB, LL_GPIO_PIN_7);
+
+#if defined(USE_USART_TX)
+							if (LL_USART_IsActiveFlag_TC(USART1)) {
+								LL_USART_ClearFlag_TC(USART1);
+								const uint16_t data = (uint16_t) modulation;
+								if (data < -1000) {
+									data = -1000;
+								}
+								else if (data > 1000) {
+									data = 1000;
+								}
+
+								static const uint8_t MAGIC = 0x54;
+								static const uint8_t MAGIC_MASK = 0x7C;
+								txBuffer[0] = (((data & 0xFF00) >> 8) & ~MAGIC_MASK) | MAGIC);
+								txBuffer[1] = (data & 0x00FF);
+								txBuffer[2] = ~(txBuffer[0] ^ txBuffer[1]);
+								LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_2, 3);
+								LL_USART_EnableDMAReq_TX(USART1);
+								LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_2);
+							}
+#endif
 						}
 						else {
 							input = adjusted_input;

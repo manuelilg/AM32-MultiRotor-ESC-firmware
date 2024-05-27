@@ -527,8 +527,8 @@
 
 //#define ONE_SHOT_125
 
-//#define USE_USART_TX
-#define USE_USART_RX
+#define USE_USART_TX
+//#define USE_USART_RX
 #if defined (USE_USART_RX)
 #define USE_VIRTUAL_PITCH_CORRECTION_INPUT
 #endif
