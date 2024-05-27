@@ -280,6 +280,15 @@ uint8_t zeroDegCrossesPerRevolution = 3 * motorPoles; // 2 steps are one zerocro
 uint8_t zeroDegCrossesCount = 0;
 uint8_t searchZeroDegLocation = 1;
 uint8_t zeroDegFound = 0;
+#if defined(USE_USART_TX)
+uint8_t txBuffer[3] = {};
+#endif
+#if defined(USE_USART_RX)
+uint8_t rxBuffer[6] = {};
+#if defined (USE_VIRTUAL_PITCH_CORRECTION_INPUT)
+int16_t correctionInput = 0;
+#endif
+#endif
 uint16_t CURRENT_LIMIT = 202;
 uint8_t sine_mode_power = 5;
 char drag_brake_strength = 10;		// Drag Brake Power when brake on stop is enabled
