@@ -1991,9 +1991,27 @@ if(newinput > 2000){
   						}
 					    }
   					}else{
+						  if (adjusted_input >= 48) {
+#if defined(USE_VIRTUAL_PITCH_CORRECTION_INPUT)
+							  const int16_t correction = -0.5 * correctionInput;
+							  const int16_t in = adjusted_input + correction;
 
-  						input = adjusted_input;
-
+							  if (in < 48) {
+								  input = 48;
+							  }
+							  else if (input > 2047) {
+								  input = 2047;
+							  }
+							  else {
+								  input = in;
+							  }
+						  }
+						  else {
+							  input = adjusted_input;
+						  }
+#else
+						  input = adjusted_input;
+#endif
   					}
   				}
 #endif
