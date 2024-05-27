@@ -29,6 +29,14 @@ extern char comp_pwm;
 extern char use_sin_start;
 extern char brake_on_stop;
 extern char RC_CAR_REVERSE;
+
+#if defined(USE_USART_RX)
+extern uint8_t rxBuffer[6];
+#if defined (USE_VIRTUAL_PITCH_CORRECTION_INPUT)
+extern int16_t correctionInput;
+#endif
+#endif
+
 //typedef struct PID{
 //	float error;
 //	float Kp;

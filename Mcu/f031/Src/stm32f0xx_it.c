@@ -58,6 +58,8 @@ extern char servoPwm;
 
 int update_interupt = 0;
 uint8_t update_count = 0;
+
+uint32_t interpretNextCorrectionInput = 1;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -202,6 +204,27 @@ void DMA1_Channel1_IRQHandler(void) {
 	/* USER CODE END DMA1_Channel1_IRQn 1 */
 }
 
+#if defined(USE_USART_RX)
+uint32_t parseMsg(uint8_t* buf) {
+	static const uint8_t MAGIC = 0x54;
+	static const uint8_t MAGIC_MASK = 0x7C;
+	const int16_t value = (buf[0] & ~MAGIC_MASK)<< 8 | buf[1];
+	const uint8_t checkSum = ~(buf[0] ^ buf[1]);
+	if ((checkSum == buf[2]) && ((buf[0] & MAGIC_MASK) == MAGIC)) {
+		if (value < 1000 && value > -1000) {
+#if defined(USE_VIRTUAL_PITCH_CORRECTION_INPUT)
+			correctionInput = value;
+#endif
+			LL_GPIO_SetOutputPin(LED_RED_PORT, LED_RED_PIN);
+			return 1;
+		}
+	}
+
+	LL_GPIO_ResetOutputPin(LED_RED_PORT, LED_RED_PIN);
+	return 0;
+}
+#endif
+
 /**
   * @brief This function handles DMA1 channel 2 and 3 interrupts.
   */
@@ -225,9 +248,55 @@ void DMA1_Channel2_3_IRQHandler(void) {
 		/* Call interruption treatment function */
 	}
 #endif
+#if defined(USE_USART_TX)
+	if(LL_DMA_IsActiveFlag_TC2(DMA1) == 1) {
+		LL_DMA_ClearFlag_GI2(DMA1);
+		LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_2);
+//		LL_GPIO_ResetOutputPin(LED_BLUE_PORT, LED_BLUE_PIN);
+	}
+	else if(LL_DMA_IsActiveFlag_TE2(DMA1) == 1) {
+		LL_DMA_ClearFlag_GI2(DMA1);
+	}
+#endif
 	/* USER CODE END DMA1_Channel2_3_IRQn 0 */
 
 	/* USER CODE BEGIN DMA1_Channel2_3_IRQn 1 */
+#if defined(USE_USART_RX)
+	if(LL_DMA_IsActiveFlag_TC3(DMA1) == 1) {
+		LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_3);
+		LL_DMA_ClearFlag_TC3(DMA1);
+		LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_3, 6);
+
+		if (interpretNextCorrectionInput) {
+			if (!parseMsg(rxBuffer + 3)) {
+				if (parseMsg(rxBuffer + 2)) {
+					LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_3, 2);
+					interpretNextCorrectionInput = 0;
+					LL_DMA_DisableIT_HT(DMA1, LL_DMA_CHANNEL_3);
+				}
+				else if (parseMsg(rxBuffer + 1)) {
+					LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_3, 1);
+					interpretNextCorrectionInput = 0;
+					LL_DMA_DisableIT_HT(DMA1, LL_DMA_CHANNEL_3);
+				} // else: try again normal
+			} // else: ok -> continue
+		}
+		else {
+			interpretNextCorrectionInput = 1;
+			LL_DMA_ClearFlag_HT3(DMA1);
+			LL_DMA_EnableIT_HT(DMA1, LL_DMA_CHANNEL_3);
+		}
+
+		LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_3);
+	}
+	else if (LL_DMA_IsActiveFlag_HT3(DMA1) == 1) {
+		LL_DMA_ClearFlag_HT3(DMA1);
+		parseMsg(rxBuffer);
+	}
+	else if(LL_DMA_IsActiveFlag_TE3(DMA1) == 1) {
+		LL_DMA_ClearFlag_GI3(DMA1);
+	}
+#endif
 	/* USER CODE END DMA1_Channel2_3_IRQn 1 */
 }
 

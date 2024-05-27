@@ -12,6 +12,13 @@
 #include "targets.h"
 #include "serial_telemetry.h"
 
+#if defined(USE_USART_TX)
+extern uint8_t txBuffer[3];
+#endif
+#if defined(USE_USART_RX)
+extern uint8_t rxBuffer[6];
+#endif
+
 void initCorePeripherals(void) {
 	LL_APB1_GRP2_EnableClock(LL_APB1_GRP2_PERIPH_SYSCFG);
 	LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_PWR);
@@ -515,6 +522,136 @@ void UN_GPIO_Init(void) {
 	LL_GPIO_Init(HALL_C_PORT, &GPIO_InitStruct);
 #endif
 
+	// PB6 -> additional DSHOT input with EXTI (TIM16_CH1N can not be used as IC)
+//	GPIO_InitStruct.Pin = LL_GPIO_PIN_6;
+//	GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
+//	GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+//	LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+//
+//	EXTI_InitStruct.Line_0_31 = LL_EXTI_LINE_6;
+//	EXTI_InitStruct.LineCommand = ENABLE;
+//	EXTI_InitStruct.Mode = LL_EXTI_MODE_IT;
+//	EXTI_InitStruct.Trigger = LL_EXTI_TRIGGER_RISING;
+//	LL_EXTI_Init(&EXTI_InitStruct);
+//
+//	LL_EXTI_DisableIT_0_31(LL_EXTI_LINE_6);
+//
+//	LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTB, LL_SYSCFG_EXTI_LINE6);
+
+//	NVIC_SetPriority(EXTI4_15_IRQn, 0);
+//	NVIC_EnableIRQ(EXTI4_15_IRQn);
+
+
+	// PB6 and PB7 debug output
+//	GPIO_InitStruct.Pin = LL_GPIO_PIN_6;
+//	GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+//	GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_HIGH;
+//	GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+//	LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+//
+//	GPIO_InitStruct.Pin = LL_GPIO_PIN_7;
+//	GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+//	GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_HIGH;
+//	GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+//	LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+#if defined(USE_USART_TX)
+	// PB6 USART1_TX
+	LL_GPIO_SetPinMode(GPIOB, LL_GPIO_PIN_6, LL_GPIO_MODE_ALTERNATE);
+	LL_GPIO_SetAFPin_0_7(GPIOB, LL_GPIO_PIN_6, LL_GPIO_AF_0);
+	LL_GPIO_SetPinSpeed(GPIOB, LL_GPIO_PIN_6, LL_GPIO_SPEED_FREQ_HIGH);
+	LL_GPIO_SetPinOutputType(GPIOB, LL_GPIO_PIN_6, LL_GPIO_OUTPUT_PUSHPULL);
+	LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_6, LL_GPIO_PULL_UP);
+
+	LL_APB1_GRP2_EnableClock(LL_APB1_GRP2_PERIPH_USART1);
+	LL_RCC_SetUSARTClockSource(LL_RCC_USART1_CLKSOURCE_PCLK1);
+	LL_USART_SetTransferDirection(USART1, LL_USART_DIRECTION_TX);
+	LL_USART_ConfigCharacter(USART1, LL_USART_DATAWIDTH_8B, LL_USART_PARITY_NONE, LL_USART_STOPBITS_1);
+
+	LL_USART_SetOverSampling(USART1, LL_USART_OVERSAMPLING_8);
+	LL_USART_SetBaudRate(USART1, SystemCoreClock, LL_USART_OVERSAMPLING_8, 1000000);
+
+	LL_USART_EnableDMAReq_TX(USART1);
+
+	LL_USART_Enable(USART1);
+
+	while(!(LL_USART_IsActiveFlag_TEACK(USART1)))
+	{	}
+
+	// DMA Channel 2
+	LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_DMA1);
+
+	NVIC_SetPriority(DMA1_Channel2_3_IRQn, 3);
+	NVIC_EnableIRQ(DMA1_Channel2_3_IRQn);
+
+	LL_DMA_ConfigTransfer(DMA1, LL_DMA_CHANNEL_2,
+						  LL_DMA_DIRECTION_MEMORY_TO_PERIPH |
+						  LL_DMA_PRIORITY_HIGH              |
+						  LL_DMA_MODE_NORMAL                |
+						  LL_DMA_PERIPH_NOINCREMENT         |
+						  LL_DMA_MEMORY_INCREMENT           |
+						  LL_DMA_PDATAALIGN_BYTE            |
+						  LL_DMA_MDATAALIGN_BYTE);
+	LL_DMA_ConfigAddresses(DMA1, LL_DMA_CHANNEL_2,
+						   (uint32_t)txBuffer,
+						   LL_USART_DMA_GetRegAddr(USART1, LL_USART_DMA_REG_DATA_TRANSMIT),
+						   LL_DMA_GetDataTransferDirection(DMA1, LL_DMA_CHANNEL_2));
+	LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_2, 3);
+
+	LL_DMA_EnableIT_TC(DMA1, LL_DMA_CHANNEL_2);
+	LL_DMA_EnableIT_TE(DMA1, LL_DMA_CHANNEL_2);
+
+#endif
+
+#if defined(USE_USART_RX)
+	// PB7 USART1_RX
+	LL_GPIO_SetPinMode(GPIOB, LL_GPIO_PIN_7, LL_GPIO_MODE_ALTERNATE);
+	LL_GPIO_SetAFPin_0_7(GPIOB, LL_GPIO_PIN_7, LL_GPIO_AF_0);
+	LL_GPIO_SetPinSpeed(GPIOB, LL_GPIO_PIN_7, LL_GPIO_SPEED_FREQ_HIGH);
+	LL_GPIO_SetPinOutputType(GPIOB, LL_GPIO_PIN_7, LL_GPIO_MODE_INPUT);
+	LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_7, LL_GPIO_PULL_UP);
+
+	LL_APB1_GRP2_EnableClock(LL_APB1_GRP2_PERIPH_USART1);
+	LL_RCC_SetUSARTClockSource(LL_RCC_USART1_CLKSOURCE_PCLK1);
+	LL_USART_SetTransferDirection(USART1, LL_USART_DIRECTION_RX);
+	LL_USART_ConfigCharacter(USART1, LL_USART_DATAWIDTH_8B, LL_USART_PARITY_NONE, LL_USART_STOPBITS_1);
+
+	LL_USART_SetOverSampling(USART1, LL_USART_OVERSAMPLING_8);
+	LL_USART_SetBaudRate(USART1, SystemCoreClock, LL_USART_OVERSAMPLING_8, 1000000);
+
+	LL_USART_EnableDMAReq_RX(USART1);
+
+	LL_USART_Enable(USART1);
+
+	while(!(LL_USART_IsActiveFlag_REACK(USART1)))
+	{	}
+
+	// DMA Channel 2
+	LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_DMA1);
+
+	NVIC_SetPriority(DMA1_Channel2_3_IRQn, 3);
+	NVIC_EnableIRQ(DMA1_Channel2_3_IRQn);
+
+	LL_DMA_ConfigTransfer(DMA1, LL_DMA_CHANNEL_3,
+						  LL_DMA_DIRECTION_PERIPH_TO_MEMORY |
+						  LL_DMA_PRIORITY_HIGH              |
+						  LL_DMA_MODE_NORMAL                |
+						  LL_DMA_PERIPH_NOINCREMENT         |
+						  LL_DMA_MEMORY_INCREMENT           |
+						  LL_DMA_PDATAALIGN_BYTE            |
+						  LL_DMA_MDATAALIGN_BYTE);
+	LL_DMA_ConfigAddresses(DMA1, LL_DMA_CHANNEL_3,
+						   LL_USART_DMA_GetRegAddr(USART1, LL_USART_DMA_REG_DATA_RECEIVE),
+						   (uint32_t)rxBuffer,
+						   LL_DMA_GetDataTransferDirection(DMA1, LL_DMA_CHANNEL_3));
+	LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_3, 6);
+
+	LL_DMA_EnableIT_TC(DMA1, LL_DMA_CHANNEL_3);
+	LL_DMA_EnableIT_HT(DMA1, LL_DMA_CHANNEL_3);
+	LL_DMA_EnableIT_TE(DMA1, LL_DMA_CHANNEL_3);
+
+	LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_3);
+#endif
 }
 
 #ifdef USE_RGB_LED

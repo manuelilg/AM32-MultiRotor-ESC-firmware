@@ -274,6 +274,15 @@ uint8_t TEMPERATURE_LIMIT = 255;  // degrees 255 to disable
 char advance_level = 2;			// 7.5 degree increments 0 , 7.5, 15, 22.5)
 uint16_t motor_kv = 2000;
 char motor_poles = 14;
+#if defined(USE_USART_TX)
+uint8_t txBuffer[3] = {};
+#endif
+#if defined(USE_USART_RX)
+uint8_t rxBuffer[6] = {};
+#if defined (USE_VIRTUAL_PITCH_CORRECTION_INPUT)
+int16_t correctionInput = 0;
+#endif
+#endif
 uint16_t CURRENT_LIMIT = 202;
 uint8_t sine_mode_power = 5;
 char drag_brake_strength = 10;		// Drag Brake Power when brake on stop is enabled
