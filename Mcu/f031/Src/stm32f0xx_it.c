@@ -206,9 +206,7 @@ void DMA1_Channel1_IRQHandler(void) {
 
 #if defined(USE_USART_RX)
 uint32_t parseMsg(uint8_t* buf) {
-	static const uint8_t MAGIC = 0x54;
-	static const uint8_t MAGIC_MASK = 0x7C;
-	const int16_t value = (buf[0] & ~MAGIC_MASK)<< 8 | buf[1];
+	const int16_t value = ((buf[0] & ~MAGIC_MASK)<< 8 | buf[1]) - 1000;
 	const uint8_t checkSum = ~(buf[0] ^ buf[1]);
 	if ((checkSum == buf[2]) && ((buf[0] & MAGIC_MASK) == MAGIC)) {
 		if (value < 1000 && value > -1000) {

@@ -37,6 +37,11 @@ extern int16_t correctionInput;
 #endif
 #endif
 
+#if defined(USE_USART_TX) || defined(USE_USART_RX)
+static const uint8_t MAGIC = 0xA8;
+static const uint8_t MAGIC_MASK = 0xF8;
+#endif
+
 //typedef struct PID{
 //	float error;
 //	float Kp;
