@@ -226,6 +226,7 @@ if(!armed){
 uint8_t input1Complete = 0;
 uint8_t input2Complete = 0;
 uint8_t input3Complete = 0;
+#endif
 
 void transfercompleteInput1(void) {
 #if defined(ADDITIONAL_INPUTS_DSHOT)

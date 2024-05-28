@@ -2076,17 +2076,12 @@ if(newinput > 2000){
 #if defined(USE_USART_TX)
 							if (LL_USART_IsActiveFlag_TC(USART1)) {
 								LL_USART_ClearFlag_TC(USART1);
-								const uint16_t data = (uint16_t) modulation;
-								if (data < -1000) {
-									data = -1000;
-								}
-								else if (data > 1000) {
-									data = 1000;
+								uint16_t data = modulation + 1000;
+								if (data > 2000) {
+									data = 2000;
 								}
 
-								static const uint8_t MAGIC = 0x54;
-								static const uint8_t MAGIC_MASK = 0x7C;
-								txBuffer[0] = (((data & 0xFF00) >> 8) & ~MAGIC_MASK) | MAGIC);
+								txBuffer[0] = (((data & 0xFF00) >> 8) & ~MAGIC_MASK) | MAGIC;
 								txBuffer[1] = (data & 0x00FF);
 								txBuffer[2] = ~(txBuffer[0] ^ txBuffer[1]);
 								LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_2, 3);
