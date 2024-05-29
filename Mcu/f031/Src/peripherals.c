@@ -635,7 +635,7 @@ void UN_GPIO_Init(void) {
 	// PB6 USART1_TX
 	LL_GPIO_SetPinMode(GPIOB, LL_GPIO_PIN_6, LL_GPIO_MODE_ALTERNATE);
 	LL_GPIO_SetAFPin_0_7(GPIOB, LL_GPIO_PIN_6, LL_GPIO_AF_0);
-	LL_GPIO_SetPinSpeed(GPIOB, LL_GPIO_PIN_6, LL_GPIO_SPEED_FREQ_HIGH);
+	LL_GPIO_SetPinSpeed(GPIOB, LL_GPIO_PIN_6, LL_GPIO_SPEED_FREQ_MEDIUM);
 	LL_GPIO_SetPinOutputType(GPIOB, LL_GPIO_PIN_6, LL_GPIO_OUTPUT_PUSHPULL);
 	LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_6, LL_GPIO_PULL_UP);
 
@@ -678,9 +678,9 @@ void UN_GPIO_Init(void) {
 	LL_DMA_EnableIT_TE(DMA1, LL_DMA_CHANNEL_2);
 
 #endif
-
 #if defined(USE_USART_RX)
 	// PB7 USART1_RX
+	/// !!!!!!!! THIS PART IS NOT UP TO DATE (see branch feature/virtual-pitch-2nd-esc) !!!!!!!!// !!!!!!!! THIS PART IS NOT UP TO DATE (see branch feature/virtual-pitch-2nd-esc) !!!!!!!!
 	LL_GPIO_SetPinMode(GPIOB, LL_GPIO_PIN_7, LL_GPIO_MODE_ALTERNATE);
 	LL_GPIO_SetAFPin_0_7(GPIOB, LL_GPIO_PIN_7, LL_GPIO_AF_0);
 	LL_GPIO_SetPinSpeed(GPIOB, LL_GPIO_PIN_7, LL_GPIO_SPEED_FREQ_HIGH);

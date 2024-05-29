@@ -2070,8 +2070,6 @@ if(newinput > 2000){
 							const int32_t modulationRoll = (cosValue - 130) * (int32_t)(adjusted_input - 48U) * (int32_t)(newinput3 - 48U - 1000U /*+ (2000U/2U)*/) / 2000 / 130;
 							const int32_t modulation = modulationPitch + modulationRoll;
 							input = adjusted_input + modulation;
-							//LL_GPIO_TogglePin(GPIOB, LL_GPIO_PIN_7);
-//							LL_GPIO_SetOutputPin(GPIOB, LL_GPIO_PIN_7);
 
 #if defined(USE_USART_TX)
 							if (LL_USART_IsActiveFlag_TC(USART1)) {
@@ -2092,8 +2090,6 @@ if(newinput > 2000){
 						}
 						else {
 							input = adjusted_input;
-							//LL_GPIO_TogglePin(GPIOB, LL_GPIO_PIN_7);
-//							LL_GPIO_ResetOutputPin(GPIOB, LL_GPIO_PIN_7);
 						}
 #else
 						input = adjusted_input;
