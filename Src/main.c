@@ -1999,7 +1999,7 @@ if(newinput > 2000){
 							  if (in < 48) {
 								  input = 48;
 							  }
-							  else if (input > 2047) {
+							  else if (in > 2047) {
 								  input = 2047;
 							  }
 							  else {

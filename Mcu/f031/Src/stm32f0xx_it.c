@@ -261,31 +261,37 @@ void DMA1_Channel2_3_IRQHandler(void) {
 	/* USER CODE BEGIN DMA1_Channel2_3_IRQn 1 */
 #if defined(USE_USART_RX)
 	if(LL_DMA_IsActiveFlag_TC3(DMA1) == 1) {
-		LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_3);
 		LL_DMA_ClearFlag_TC3(DMA1);
-		LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_3, 6);
 
 		if (interpretNextCorrectionInput) {
 			if (!parseMsg(rxBuffer + 3)) {
 				if (parseMsg(rxBuffer + 2)) {
+					LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_3);
+					LL_DMA_SetMode(DMA1, LL_DMA_CHANNEL_3, LL_DMA_MODE_NORMAL);
 					LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_3, 2);
-					interpretNextCorrectionInput = 0;
 					LL_DMA_DisableIT_HT(DMA1, LL_DMA_CHANNEL_3);
+					LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_3);
+					interpretNextCorrectionInput = 0;
 				}
 				else if (parseMsg(rxBuffer + 1)) {
+					LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_3);
+					LL_DMA_SetMode(DMA1, LL_DMA_CHANNEL_3, LL_DMA_MODE_NORMAL);
 					LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_3, 1);
-					interpretNextCorrectionInput = 0;
 					LL_DMA_DisableIT_HT(DMA1, LL_DMA_CHANNEL_3);
+					LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_3);
+					interpretNextCorrectionInput = 0;
 				} // else: try again normal
 			} // else: ok -> continue
 		}
 		else {
-			interpretNextCorrectionInput = 1;
+			LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_3);
+			LL_DMA_SetMode(DMA1, LL_DMA_CHANNEL_3, LL_DMA_MODE_CIRCULAR);
+			LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_3, 6);
 			LL_DMA_ClearFlag_HT3(DMA1);
 			LL_DMA_EnableIT_HT(DMA1, LL_DMA_CHANNEL_3);
+			LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_3);
+			interpretNextCorrectionInput = 1;
 		}
-
-		LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_3);
 	}
 	else if (LL_DMA_IsActiveFlag_HT3(DMA1) == 1) {
 		LL_DMA_ClearFlag_HT3(DMA1);

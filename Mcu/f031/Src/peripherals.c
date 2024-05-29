@@ -637,7 +637,7 @@ void UN_GPIO_Init(void) {
 	LL_DMA_ConfigTransfer(DMA1, LL_DMA_CHANNEL_3,
 						  LL_DMA_DIRECTION_PERIPH_TO_MEMORY |
 						  LL_DMA_PRIORITY_HIGH              |
-						  LL_DMA_MODE_NORMAL                |
+						  LL_DMA_MODE_CIRCULAR              |
 						  LL_DMA_PERIPH_NOINCREMENT         |
 						  LL_DMA_MEMORY_INCREMENT           |
 						  LL_DMA_PDATAALIGN_BYTE            |
