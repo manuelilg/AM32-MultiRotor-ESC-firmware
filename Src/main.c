@@ -2059,22 +2059,62 @@ if(newinput > 2000){
 #if defined(USE_VIRTUAL_PITCH)
 						if (zeroDegFound && adjusted_input >= 48) {
 							const uint32_t angle = (zeroDegCrossesCount * 360U + (zeroDegCrossesPerRevolution/2U))  / zeroDegCrossesPerRevolution;
-							const uint32_t modified_angle = (angle + 90U) > 360U ? angle - 270U : angle + 90U ;
-							const int32_t sinValue = pwmSin[modified_angle]; // sin-value between 0 - 360
-							const int32_t cosValue = pwmSin[angle];
+							const uint32_t modified_angle = (angle + 90U) >= 360U ? angle - 270U : angle + 90U ;
+							const int32_t sinAmplitude = (360/2);
+							const int32_t sinValue = pwmSin[modified_angle] - sinAmplitude; // sin-value between 0 - 360
+							const int32_t cosValue = pwmSin[angle] - sinAmplitude;
 							// adjusted_input has range from 47 to 2047
 							//uint32_t roll = (newinput2 - 47U + (2000U/2U)) / 2000U ;
 							// TODO signed integer division rounding for
 							// +/- 130   *   0 - 2000   *   0 - 2000   /   2000   /   130   =   +/- 0 - 2000 ( proportional to adjusted_input)
-							const int32_t modulationPitch = (sinValue - 130) * (int32_t)(adjusted_input - 48U) * (int32_t)(newinput2 - 48U - 1000U /*+ (2000U/2U)*/) / 2000 / 130;
-							const int32_t modulationRoll = (cosValue - 130) * (int32_t)(adjusted_input - 48U) * (int32_t)(newinput3 - 48U - 1000U /*+ (2000U/2U)*/) / 2000 / 130;
-							const int32_t modulation = modulationPitch + modulationRoll;
-							input = adjusted_input + modulation;
+							uint32_t base = adjusted_input - 48;
 
+							int32_t pitchInput = ((int32_t) newinput2) - 47 - 1000;
+							int32_t rollInput = ((int32_t) newinput3) - 47 - 1000;
+
+							pitchInput *= 2;
+							rollInput *= 2;
+
+							const uint32_t amplitudeSquared = pitchInput * pitchInput + rollInput * rollInput;
+							const uint32_t maxAmplitude = 1900 - base;
+							const uint32_t maxAmplitudeSquared = maxAmplitude * maxAmplitude;
+
+							if (amplitudeSquared > maxAmplitudeSquared) {
+								// scale down inputs (avoid integer overflow during multiplication)
+								pitchInput = pitchInput * (maxAmplitudeSquared/2) / (amplitudeSquared/2);
+								rollInput = rollInput * (maxAmplitudeSquared/2) / (amplitudeSquared/2);
+							}
+
+							pitchInput /= 2;
+							rollInput /= 2;
+
+							int32_t modulationPitch = 0;
+							int32_t modulationRoll = 0;
+							if (base > 1000) {
+								modulationPitch = sinValue * pitchInput / sinAmplitude;
+								modulationRoll = cosValue * rollInput / sinAmplitude;
+							}
+							else {
+								modulationPitch = sinValue * base * pitchInput / 2000 / sinAmplitude;
+								modulationRoll = cosValue * base * rollInput / 2000 / sinAmplitude;
+							}
+
+							const int32_t modulation = modulationPitch + modulationRoll;
+							int32_t temp_input = (base + 48) + modulation;
+
+							if (temp_input > 2047) {
+								temp_input = 2047;
+							}
+
+							if (temp_input < 48) {
+								temp_input = 48;
+							}
+
+							input = temp_input;
 #if defined(USE_USART_TX)
 							if (LL_USART_IsActiveFlag_TC(USART1)) {
 								LL_USART_ClearFlag_TC(USART1);
-								uint16_t data = modulation + 1000;
+								uint16_t data =  input + 1000 - adjusted_input ; // modulation with  + 1000;
 								if (data > 2000) {
 									data = 2000;
 								}
